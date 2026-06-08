@@ -1,0 +1,6 @@
+{
+  "name": "StudyLogs",
+  "description": "A private study accountability platform for exactly two users.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile and partner mapping",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "partnerId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" },
+        "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "streak": { "type": "number" },
+        "longestStreak": { "type": "number" },
+        "lastStudyDate": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "createdAt", "updatedAt"]
+    },
+    "folder": {
+      "title": "Folder",
+      "description": "User-created folders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "ownerId", "name", "createdAt", "updatedAt"]
+    },
+    "log": {
+      "title": "Study Log",
+      "description": "A study reflection post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "folderId": { "type": "string" },
+        "topicTitle": { "type": "string" },
+        "content": { "type": "string" },
+        "visibility": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" },
+        "commentCount": { "type": "number" },
+        "reactionCounts": { "type": "object" }
+      },
+      "required": ["id", "authorId", "topicTitle", "content", "visibility", "createdAt", "updatedAt"]
+    },
+    "comment": {
+      "title": "Comment",
+      "description": "Comment on a study log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "authorId", "content", "createdAt", "updatedAt"]
+    },
+    "reaction": {
+      "title": "Reaction",
+      "description": "Reaction from a user to a log",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["type", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/user" },
+      "description": "Profiles of the two users"
+    },
+    "/folders/{folderId}": {
+      "schema": { "$ref": "#/entities/folder" },
+      "description": "User created topic folders"
+    },
+    "/logs/{logId}": {
+      "schema": { "$ref": "#/entities/log" },
+      "description": "Feed logs created by users"
+    },
+    "/logs/{logId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/comment" },
+      "description": "Comments on a given log"
+    },
+    "/logs/{logId}/reactions/{userId}": {
+      "schema": { "$ref": "#/entities/reaction" },
+      "description": "Reactions by a user on a given log"
+    }
+  }
+}

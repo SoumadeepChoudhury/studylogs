@@ -1,0 +1,134 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitives
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+
+    // Users Collection
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'createdAt', 'updatedAt'])
+        && data.id == request.auth.uid
+        && data.name is string && data.name.size() <= 100
+        && data.email is string && data.email.size() <= 100
+        && data.createdAt is number
+        && data.updatedAt is number
+        // optional fields
+        && (!('partnerId' in data) || (data.partnerId is string && data.partnerId.size() <= 128))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500))
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 500))
+        && (!('streak' in data) || data.streak is number)
+        && (!('longestStreak' in data) || data.longestStreak is number)
+        && (!('lastStudyDate' in data) || (data.lastStudyDate is string && data.lastStudyDate.size() <= 20));
+    }
+
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Folders Collection
+    function isValidFolder(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'name', 'createdAt', 'updatedAt'])
+        && data.ownerId == request.auth.uid
+        && data.name is string && data.name.size() <= 100
+        && data.createdAt is number
+        && data.updatedAt is number;
+    }
+
+    match /folders/{folderId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(folderId) && isValidFolder(incoming())
+        && incoming().id == folderId;
+      allow update: if isOwner(existing().ownerId) && isValidFolder(incoming())
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt;
+      allow delete: if isOwner(existing().ownerId);
+    }
+
+    // Logs Collection
+    function isValidLog(data) {
+      return data.keys().hasAll(['id', 'authorId', 'topicTitle', 'content', 'visibility', 'createdAt', 'updatedAt'])
+        && data.authorId == request.auth.uid
+        && data.topicTitle is string && data.topicTitle.size() <= 200
+        && data.content is string && data.content.size() <= 1000000 // 1MB text limit
+        && data.visibility is string && data.visibility.matches('^(public|private)$')
+        && data.createdAt is number
+        && data.updatedAt is number
+        && (!('folderId' in data) || data.folderId == null || (data.folderId is string && data.folderId.size() <= 128))
+        && (!('commentCount' in data) || data.commentCount is number)
+        && (!('reactionCounts' in data) || data.reactionCounts is map)
+        && (!('editorMode' in data) || (data.editorMode is string && data.editorMode.matches('^(richtext|code)$')))
+        && (!('language' in data) || data.language is string);
+    }
+
+    match /logs/{logId} {
+      allow read, list: if isSignedIn() && (resource == null || resource.data.visibility == 'public' || resource.data.authorId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(logId) && isValidLog(incoming())
+        && incoming().id == logId;
+      // Allow the author to update their own log
+      // Allow others to update only commentCount and reactionCounts.
+      allow update: if isSignedIn() && isValidLog(incoming())
+        && incoming().id == existing().id
+        && incoming().authorId == existing().authorId
+        && incoming().createdAt == existing().createdAt
+        && (
+          (isOwner(existing().authorId)) ||
+          (!isOwner(existing().authorId) && incoming().diff(existing()).affectedKeys().hasOnly(['commentCount', 'reactionCounts']))
+        );
+      allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+
+      // Comments Subcollection
+      function isValidComment(data) {
+        return data.keys().hasAll(['id', 'authorId', 'content', 'createdAt', 'updatedAt'])
+          && data.authorId == request.auth.uid
+          && data.content is string && data.content.size() <= 5000
+          && data.createdAt is number
+          && data.updatedAt is number;
+      }
+
+      match /comments/{commentId} {
+        // Can read if they can read the parent log
+        // To enforce this securely without get(), we would need visibility passed in comment, 
+        // but since we can't reliably filter subcollections without it, we can just use get() carefully, 
+        // or just let all authenticated users read comments. Given only 2 users, reading all comments is fine.
+        allow read, list: if isSignedIn();
+        allow create: if isSignedIn() && isValidId(commentId) && isValidComment(incoming())
+          && incoming().id == commentId;
+        allow update: if isOwner(existing().authorId) && isValidComment(incoming())
+          && incoming().id == existing().id
+          && incoming().authorId == existing().authorId
+          && incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(existing().authorId);
+      }
+
+      // Reactions Subcollection
+      function isValidReaction(data) {
+        return data.keys().hasAll(['type', 'createdAt'])
+          && data.type is string && data.type.size() <= 50
+          && data.createdAt is number;
+      }
+
+      // The userId is the document ID for the reaction document
+      match /reactions/{userId} {
+        allow read, list: if isSignedIn();
+        allow create: if isOwner(userId) && isValidReaction(incoming());
+        allow update: if isOwner(userId) && isValidReaction(incoming())
+          && incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
