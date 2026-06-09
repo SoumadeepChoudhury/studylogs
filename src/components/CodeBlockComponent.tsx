@@ -36,7 +36,7 @@ export default function CodeBlockComponent({ node, updateAttributes, extension }
       </div>
       <div className="p-4 overflow-x-auto text-sm font-mono text-slate-50 min-h-[100px]">
         {/* We use NodeViewContent for the actual content so TipTap syncs it properly */}
-        <pre className="!bg-transparent !p-0 !m-0 outline-none"><NodeViewContent as="code" /></pre>
+        <pre className="!bg-transparent !p-0 !m-0 outline-none"><NodeViewContent className="font-mono text-sm" /></pre>
       </div>
     </NodeViewWrapper>
   );

@@ -35,7 +35,8 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
     // Folders Collection
@@ -75,7 +76,7 @@ service cloud.firestore {
     }
 
     match /logs/{logId} {
-      allow read, list: if isSignedIn() && (resource == null || resource.data.visibility == 'public' || resource.data.authorId == request.auth.uid);
+      allow read, list: if isSignedIn();
       allow create: if isSignedIn() && isValidId(logId) && isValidLog(incoming())
         && incoming().id == logId;
       // Allow the author to update their own log

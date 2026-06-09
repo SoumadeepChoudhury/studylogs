@@ -24,12 +24,16 @@ function CommentItem({ comment }: { comment: Comment }) {
   useEffect(() => {
     let isMounted = true;
     const fetchAuthor = async () => {
-      const userSnap = await getDoc(doc(db, 'users', comment.authorId));
-      if (userSnap.exists() && isMounted) {
-        setAuthorName(userSnap.data().name);
-        setAuthorPhoto(userSnap.data().photoURL);
-      } else if (isMounted) {
-        setAuthorName('Unknown');
+      try {
+        const userSnap = await getDoc(doc(db, 'users', comment.authorId));
+        if (userSnap.exists() && isMounted) {
+          setAuthorName(userSnap.data().name);
+          setAuthorPhoto(userSnap.data().photoURL);
+        } else if (isMounted) {
+          setAuthorName('Unknown');
+        }
+      } catch (err) {
+        if (isMounted) setAuthorName('Unknown');
       }
     };
     fetchAuthor();
@@ -78,35 +82,50 @@ export default function LogView() {
   useEffect(() => {
     if (!id || !user) return;
     
-    // Fetch Log
-    const fetchLog = async () => {
-      const docRef = doc(db, 'logs', id);
-      const snap = await getDoc(docRef);
+    let unsubscribeLog: () => void;
+    
+    // Fetch Log Realtime
+    const docRef = doc(db, 'logs', id);
+    unsubscribeLog = onSnapshot(docRef, async (snap) => {
+      setLoading(false);
       if (snap.exists()) {
         const data = snap.data() as StudyLog;
         setLog(data);
         
         // Fetch Author
-        const userSnap = await getDoc(doc(db, 'users', data.authorId));
-        if (userSnap.exists()) {
-          setAuthorName(userSnap.data().name);
-          setAuthorPhoto(userSnap.data().photoURL);
-        } else {
+        try {
+          const userSnap = await getDoc(doc(db, 'users', data.authorId));
+          if (userSnap.exists()) {
+            setAuthorName(userSnap.data().name);
+            setAuthorPhoto(userSnap.data().photoURL);
+          } else {
+            setAuthorName('Unknown');
+          }
+        } catch (e) {
+          console.error('Error fetching author:', e);
           setAuthorName('Unknown');
         }
+      } else {
+        setLog(null);
       }
+    }, (error) => {
+      console.error('Error fetching log:', error);
       setLoading(false);
-    };
-
-    fetchLog();
+      setLog(null);
+    });
 
     // Listen to comments
     const q = query(collection(db, 'logs', id, 'comments'), orderBy('createdAt', 'asc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribeComments = onSnapshot(q, (snapshot) => {
       setComments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment)));
+    }, (error) => {
+      console.error('Error fetching comments:', error);
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribeLog) unsubscribeLog();
+      if (unsubscribeComments) unsubscribeComments();
+    };
   }, [id, user]);
 
   const handlePostComment = async (e: React.FormEvent) => {

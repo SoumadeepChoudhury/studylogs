@@ -27,15 +27,19 @@ export default function Feed() {
   const [partnerProfile, setPartnerProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    if (!profile?.partnerId) return;
-    const fetchPartner = async () => {
-      const snap = await getDoc(doc(db, 'users', profile.partnerId!));
-      if (snap.exists()) {
-        setPartnerProfile(snap.data() as UserProfile);
+    if (!user) return;
+    const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const otherUserDoc = snapshot.docs.find(d => d.id !== user.uid && d.data().id !== user.uid);
+      if (otherUserDoc) {
+        setPartnerProfile(otherUserDoc.data() as UserProfile);
+      } else {
+        setPartnerProfile(null);
       }
-    };
-    fetchPartner();
-  }, [profile?.partnerId]);
+    }, (error) => {
+      console.error("Error fetching partner profile:", error);
+    });
+    return () => unsubscribe();
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -43,12 +47,8 @@ export default function Feed() {
     const logsRef = collection(db, 'logs');
     const q = query(
       logsRef,
-      or(
-        where('visibility', '==', 'public'),
-        where('authorId', '==', user.uid)
-      ),
       orderBy('createdAt', 'desc'),
-      limit(50)
+      limit(100)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -64,6 +64,11 @@ export default function Feed() {
   }, [user]);
 
   const filteredLogs = logs.filter(log => {
+    // Filter by visibility first
+    const isVisible = log.visibility === 'public' || log.authorId === user?.uid || log.authorId === partnerProfile?.id;
+    if (!isVisible) return false;
+
+    // Then filter by tab
     if (filter === 'me') return log.authorId === user?.uid;
     if (filter === 'partner') return log.authorId !== user?.uid;
     return true;

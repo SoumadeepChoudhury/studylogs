@@ -2,7 +2,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LogOut } from 'lucide-react';
 
 export default function Profile() {
-  const { user, profile, logOut } = useAuth();
+  const { profile, logOut } = useAuth();
 
   return (
     <div className="max-w-2xl mx-auto w-full px-6 py-12 pb-32">
@@ -10,7 +10,7 @@ export default function Profile() {
       
       <div className="bg-white border border-slate-100 p-12 rounded-[2rem] flex flex-col items-center text-center shadow-sm">
         {profile?.photoURL ? (
-          <img src={profile.photoURL} alt="" className="w-28 h-28 rounded-full mb-6 ring-4 ring-slate-50" />
+          <img src={profile.photoURL} alt="" className="w-28 h-28 rounded-full mb-6 ring-4 ring-slate-50" referrerPolicy="no-referrer" />
         ) : (
           <div className="w-28 h-28 rounded-full bg-slate-100 flex items-center justify-center text-4xl text-slate-800 font-serif italic mb-6 ring-4 ring-slate-50">
             {profile?.name?.charAt(0)}
@@ -32,8 +32,8 @@ export default function Profile() {
            </div>
         </div>
       </div>
-
-      <div className="mt-12">
+      
+      <div className="mt-8">
         <button 
           onClick={logOut}
           className="w-full flex items-center justify-center gap-2 bg-slate-50 text-slate-600 font-medium py-4 rounded-2xl hover:bg-slate-100 transition-colors border border-slate-200"

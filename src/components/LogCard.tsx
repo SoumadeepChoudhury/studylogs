@@ -23,20 +23,29 @@ export default function LogCard({ log }: { log: StudyLog }) {
   };
 
   useEffect(() => {
+    let isMounted = true;
     if (isAuthor) {
       setAuthorName('You');
-      return;
+      if (user?.photoURL) setAuthorPhoto(user.photoURL);
+      return () => { isMounted = false; };
     }
-    getDoc(doc(db, 'users', log.authorId)).then(snap => {
-      if (snap.exists()) {
-        const data = snap.data();
-        setAuthorName(data.name || 'Partner');
-        setAuthorPhoto(data.photoURL || '');
-      } else {
-        setAuthorName('Unknown');
+    const fetchAuthor = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'users', log.authorId));
+        if (snap.exists() && isMounted) {
+          const data = snap.data();
+          setAuthorName(data.name || 'Unknown');
+          setAuthorPhoto(data.photoURL || '');
+        } else if (isMounted) {
+          setAuthorName('Unknown');
+        }
+      } catch (e) {
+        if (isMounted) setAuthorName('Unknown');
       }
-    });
-  }, [log.authorId, isAuthor]);
+    };
+    fetchAuthor();
+    return () => { isMounted = false; };
+  }, [log.authorId, isAuthor, user?.photoURL]);
 
   return (
     <article className="group relative border-b border-slate-100 pb-10 pt-6 first:pt-0">
