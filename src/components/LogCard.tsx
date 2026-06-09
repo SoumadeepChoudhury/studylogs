@@ -52,22 +52,22 @@ export default function LogCard({ log }: { log: StudyLog }) {
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
           {authorPhoto ? (
-             <img src={authorPhoto} alt="" className="w-6 h-6 rounded-full border border-slate-200" referrerPolicy="no-referrer" />
+            <img src={authorPhoto} alt="" className="w-6 h-6 rounded-full border border-slate-200" referrerPolicy="no-referrer" />
           ) : (
             <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-[10px] font-bold uppercase">
               {authorName.charAt(0)}
             </div>
           )}
-          
+
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">{authorName}</span>
             <span className="text-slate-300">•</span>
-            {log.folderId && (
+            {/* {log.folderId && (
               <>
                 <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">Folder</span>
                 <span className="text-slate-300">•</span>
               </>
-            )}
+            )} */}
             <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">
               {formatDistanceToNow(log.createdAt, { addSuffix: true })}
             </span>
@@ -89,11 +89,11 @@ export default function LogCard({ log }: { log: StudyLog }) {
       </div>
 
       <Link to={`/log/${log.id}`} className="block cursor-pointer">
-         <h2 className="font-serif text-3xl leading-tight mb-4 group-hover:text-slate-600 transition-colors">{log.topicTitle}</h2>
-         <div 
-           className="text-slate-600 leading-relaxed line-clamp-3 mb-6 font-serif italic text-lg prose prose-slate prose-p:my-0 max-w-none"
-           dangerouslySetInnerHTML={{ __html: log.content.replace(/<[^>]+>/g, ' ').substring(0, 300) + '...' }}
-         />
+        <h2 className="font-serif text-3xl leading-tight mb-4 group-hover:text-slate-600 transition-colors">{log.topicTitle}</h2>
+        <div
+          className="text-slate-600 leading-relaxed line-clamp-3 mb-6 font-serif italic text-lg prose prose-slate prose-p:my-0 max-w-none"
+          dangerouslySetInnerHTML={{ __html: log.content.replace(/<[^>]+>/g, ' ').substring(0, 300) + '...' }}
+        />
       </Link>
 
       <div className="flex items-center justify-between border-t border-slate-50 pt-4">
